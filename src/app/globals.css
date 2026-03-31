@@ -2,10 +2,7 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  color-scheme: light dark;
-}
-
 body {
   @apply min-h-dvh antialiased;
+  font-family: var(--font-nunito), sans-serif;
 }
