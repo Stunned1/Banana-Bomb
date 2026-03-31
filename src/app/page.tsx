@@ -3,7 +3,8 @@
 import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 
-import { NICKNAME_STORAGE_KEY } from '@/utils/nickname';
+import { AVATARS, getAvatarById } from '@/components/avatars';
+import { AVATAR_STORAGE_KEY, NICKNAME_STORAGE_KEY } from '@/utils/nickname';
 
 // ── SVG icons ────────────────────────────────────────────────────────────────
 
@@ -189,8 +190,18 @@ function AvatarPalm({ className }: { className?: string }) {
 
 export default function HomePage() {
   const router = useRouter();
-  const [nickname, setNickname] = useState('');
+  const [nickname, setNickname] = useState(() => {
+    if (typeof window === 'undefined') return '';
+    return window.sessionStorage.getItem(NICKNAME_STORAGE_KEY) ?? '';
+  });
   const [joinCode, setJoinCode] = useState('');
+  const [avatarIndex, setAvatarIndex] = useState(() => {
+    if (typeof window === 'undefined') return 0;
+    const saved = window.sessionStorage.getItem(AVATAR_STORAGE_KEY);
+    if (!saved) return 0;
+    const idx = AVATARS.findIndex((a) => a.id === saved);
+    return idx >= 0 ? idx : 0;
+  });
   const [muted, setMuted] = useState(false);
   const [volume, setVolume] = useState(0.25);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -241,6 +252,14 @@ export default function HomePage() {
   function persistNickname() {
     if (typeof window === 'undefined') return;
     window.sessionStorage.setItem(NICKNAME_STORAGE_KEY, nickname.trim() || 'Player');
+    window.sessionStorage.setItem(AVATAR_STORAGE_KEY, AVATARS[avatarIndex].id);
+  }
+
+  function pickAvatar(idx: number) {
+    setAvatarIndex(idx);
+    if (typeof window !== 'undefined') {
+      window.sessionStorage.setItem(AVATAR_STORAGE_KEY, AVATARS[idx].id);
+    }
   }
 
   function handleCreate() {
@@ -319,6 +338,55 @@ export default function HomePage() {
           className="flex flex-col gap-3 rounded-2xl p-4"
           style={{ background: '#fffde7', border: '2.5px solid #f5c800' }}
         >
+          {/* Character picker */}
+          <div className="flex items-center justify-between gap-2">
+            <button
+              type="button"
+              aria-label="Previous character"
+              onClick={() => pickAvatar((avatarIndex - 1 + AVATARS.length) % AVATARS.length)}
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-xl font-black active:scale-90"
+              style={{ background: '#f0eedc', color: '#c8860a' }}
+            >
+              ‹
+            </button>
+
+            <div className="flex flex-1 flex-col items-center gap-1">
+              {(() => {
+                const AvatarComp = AVATARS[avatarIndex].component;
+                return <AvatarComp className="h-20 w-20 drop-shadow-md" />;
+              })()}
+              <span className="text-xs font-extrabold uppercase tracking-widest" style={{ color: '#c8860a' }}>
+                {AVATARS[avatarIndex].label}
+              </span>
+              {/* dot indicators */}
+              <div className="flex gap-1 pt-0.5">
+                {AVATARS.map((_, i) => (
+                  <button
+                    key={i}
+                    type="button"
+                    aria-label={`Select ${AVATARS[i].label}`}
+                    onClick={() => pickAvatar(i)}
+                    className="h-1.5 rounded-full transition-all"
+                    style={{
+                      width: i === avatarIndex ? '16px' : '6px',
+                      background: i === avatarIndex ? '#c8860a' : '#d4c870',
+                    }}
+                  />
+                ))}
+              </div>
+            </div>
+
+            <button
+              type="button"
+              aria-label="Next character"
+              onClick={() => pickAvatar((avatarIndex + 1) % AVATARS.length)}
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-xl font-black active:scale-90"
+              style={{ background: '#f0eedc', color: '#c8860a' }}
+            >
+              ›
+            </button>
+          </div>
+
           <label className="text-xs font-extrabold uppercase tracking-widest" style={{ color: '#c8860a' }}>
             Your Nickname
           </label>

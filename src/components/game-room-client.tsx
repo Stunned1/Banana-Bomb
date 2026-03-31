@@ -6,13 +6,20 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import type { PublicState } from '@/types/game';
 import { getGameServerWsUrl } from '@/utils/game-server-url';
 import { logger } from '@/utils/logger';
-import { NICKNAME_STORAGE_KEY } from '@/utils/nickname';
+import { AVATAR_STORAGE_KEY, NICKNAME_STORAGE_KEY } from '@/utils/nickname';
 
+import { AVATARS, getAvatarById } from './avatars';
 import { BananaGrid } from './banana-grid';
 
 function readNickname(): string {
   if (typeof window === 'undefined') return 'Player';
   return window.sessionStorage.getItem(NICKNAME_STORAGE_KEY)?.trim() || 'Player';
+}
+
+function readAvatar() {
+  if (typeof window === 'undefined') return AVATARS[0];
+  const id = window.sessionStorage.getItem(AVATAR_STORAGE_KEY) ?? '';
+  return getAvatarById(id);
 }
 
 interface GameRoomClientProps {
@@ -63,22 +70,6 @@ function BombIcon({ className }: { className?: string }) {
   );
 }
 
-function MonkeyIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 40 40" fill="none">
-      <circle cx="20" cy="20" r="18" fill="#c8860a"/>
-      <ellipse cx="10" cy="22" rx="5" ry="6" fill="#a06010"/>
-      <ellipse cx="30" cy="22" rx="5" ry="6" fill="#a06010"/>
-      <ellipse cx="20" cy="22" rx="11" ry="12" fill="#e8a830"/>
-      <ellipse cx="20" cy="26" rx="7" ry="5" fill="#c8860a"/>
-      <circle cx="15" cy="18" r="3" fill="white"/>
-      <circle cx="25" cy="18" r="3" fill="white"/>
-      <circle cx="15.5" cy="18.5" r="1.5" fill="#1a1a1a"/>
-      <circle cx="25.5" cy="18.5" r="1.5" fill="#1a1a1a"/>
-      <ellipse cx="20" cy="27" rx="4" ry="2.5" fill="#b07020"/>
-    </svg>
-  );
-}
 
 // ── Shared layout wrapper ─────────────────────────────────────────────────────
 
@@ -155,7 +146,7 @@ function WaitingLobby({
       <div className="grid grid-cols-2 gap-3">
         {/* Me */}
         <div className="flex flex-col items-center gap-2 rounded-2xl p-4" style={{ background: '#fffde7', border: '2.5px solid #6abf4b' }}>
-          <MonkeyIcon className="h-14 w-14" />
+          {(() => { const A = readAvatar().component; return <A className="h-14 w-14" />; })()}
           <p className="text-center text-sm font-extrabold text-zinc-800 truncate w-full text-center">{myNickname}</p>
           <span className="rounded-full px-3 py-0.5 text-xs font-extrabold text-white" style={{ background: '#6abf4b' }}>
             You
@@ -215,7 +206,8 @@ function WaitingDots() {
 
 // ── Player stat card ──────────────────────────────────────────────────────────
 
-function PlayerCard({ label, nickname, lives, ready }: { label: string; nickname: string; lives: number; ready?: boolean }) {
+function PlayerCard({ label, nickname, lives, ready, isMe }: { label: string; nickname: string; lives: number; ready?: boolean; isMe?: boolean }) {
+  const AvatarComp = isMe ? readAvatar().component : AVATARS[1].component;
   return (
     <div
       className="flex flex-col gap-2 rounded-2xl p-4"
@@ -223,7 +215,7 @@ function PlayerCard({ label, nickname, lives, ready }: { label: string; nickname
     >
       <p className="text-xs font-extrabold uppercase tracking-widest" style={{ color: '#c8860a' }}>{label}</p>
       <div className="flex items-center gap-2">
-        <MonkeyIcon className="h-9 w-9 shrink-0" />
+        <AvatarComp className="h-9 w-9 shrink-0" />
         <p className="truncate font-extrabold text-zinc-800">{nickname}</p>
       </div>
       <div className="flex items-center gap-1">
@@ -411,7 +403,7 @@ export function GameRoomClient({ initialJoinCode }: GameRoomClientProps) {
       {roomState.phase === 'placement' && (
         <div className="flex flex-col gap-5">
           <div className="grid grid-cols-2 gap-3">
-            <PlayerCard label="You" nickname={me?.nickname ?? '—'} lives={me?.lives ?? 0} ready={me?.placementReady} />
+            <PlayerCard label="You" nickname={me?.nickname ?? '—'} lives={me?.lives ?? 0} ready={me?.placementReady} isMe />
             <PlayerCard label="Opponent" nickname={opp?.nickname ?? '—'} lives={opp?.lives ?? 0} ready={opp?.placementReady} />
           </div>
 
@@ -461,7 +453,7 @@ export function GameRoomClient({ initialJoinCode }: GameRoomClientProps) {
       {roomState.phase === 'playing' && (
         <div className="flex flex-col gap-5">
           <div className="grid grid-cols-2 gap-3">
-            <PlayerCard label="You" nickname={me?.nickname ?? '—'} lives={me?.lives ?? 0} />
+            <PlayerCard label="You" nickname={me?.nickname ?? '—'} lives={me?.lives ?? 0} isMe />
             <PlayerCard label="Opponent" nickname={opp?.nickname ?? '—'} lives={opp?.lives ?? 0} />
           </div>
 
